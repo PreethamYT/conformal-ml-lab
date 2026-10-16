@@ -1,6 +1,6 @@
 """
 Visualization module for conformal prediction results and analysis.
-Generates bar charts for coverage and average set size, set-size histogram for Random Forest,
+Generates bar charts for coverage and average set size, set-size histogram,
 and a 2D PCA scatter plot highlighting uncertain prediction points.
 """
 
@@ -11,16 +11,16 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-import joblib
-import matplotlib
+import joblib  # noqa: E402
+import matplotlib  # noqa: E402
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt  # noqa: E402
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
+from sklearn.decomposition import PCA  # noqa: E402
 
-from src.conformal import conformal_sets
-from src.preprocess import load_processed_data
+from src.conformal import conformal_sets  # noqa: E402
+from src.preprocess import load_processed_data  # noqa: E402
 
 
 def generate_plots(results_csv="outputs/results.csv", output_dir="outputs"):
@@ -40,17 +40,32 @@ def generate_plots(results_csv="outputs/results.csv", output_dir="outputs"):
     # 1. Coverage Bar Chart
     plt.figure(figsize=(10, 6))
     models = df_results["model"].unique()
-    alphas = df_results["alpha"].unique()
     x = np.arange(len(models))
     width = 0.35
 
-    df_a1 = df_results[df_results["alpha"] == 0.1].set_index("model").reindex(models)
-    df_a2 = df_results[df_results["alpha"] == 0.2].set_index("model").reindex(models)
+    df_a1 = df_results[
+        df_results["alpha"] == 0.1
+    ].set_index("model").reindex(models)
+    df_a2 = df_results[
+        df_results["alpha"] == 0.2
+    ].set_index("model").reindex(models)
 
-    plt.bar(x - width/2, df_a1["coverage"], width, label="alpha = 0.1 (Target 90%)")
-    plt.bar(x + width/2, df_a2["coverage"], width, label="alpha = 0.2 (Target 80%)")
-    plt.axhline(0.90, color="blue", linestyle="--", alpha=0.7, label="Target 90%")
-    plt.axhline(0.80, color="orange", linestyle="--", alpha=0.7, label="Target 80%")
+    plt.bar(
+        x - width / 2,
+        df_a1["coverage"],
+        width,
+        label="alpha = 0.1 (Target 90%)",
+    )
+    plt.bar(
+        x + width / 2,
+        df_a2["coverage"],
+        width,
+        label="alpha = 0.2 (Target 80%)",
+    )
+    plt.axhline(0.90, color="b", linestyle="--", alpha=0.7, label="Target 90%")
+    plt.axhline(
+        0.80, color="orange", linestyle="--", alpha=0.7, label="Target 80%"
+    )
 
     plt.xlabel("Model")
     plt.ylabel("Coverage")
@@ -64,8 +79,8 @@ def generate_plots(results_csv="outputs/results.csv", output_dir="outputs"):
 
     # 2. Avg Set Size Bar Chart
     plt.figure(figsize=(10, 6))
-    plt.bar(x - width/2, df_a1["avg_set_size"], width, label="alpha = 0.1")
-    plt.bar(x + width/2, df_a2["avg_set_size"], width, label="alpha = 0.2")
+    plt.bar(x - width / 2, df_a1["avg_set_size"], width, label="alpha = 0.1")
+    plt.bar(x + width / 2, df_a2["avg_set_size"], width, label="alpha = 0.2")
 
     plt.xlabel("Model")
     plt.ylabel("Average Set Size")
@@ -94,7 +109,12 @@ def generate_plots(results_csv="outputs/results.csv", output_dir="outputs"):
     possible_sizes = [0, 1, 2]
     freqs = [counts.get(s, 0) for s in possible_sizes]
 
-    plt.bar([str(s) for s in possible_sizes], freqs, color="skyblue", edgecolor="black")
+    plt.bar(
+        [str(s) for s in possible_sizes],
+        freqs,
+        color="skyblue",
+        edgecolor="black",
+    )
     plt.xlabel("Prediction Set Size")
     plt.ylabel("Count")
     plt.title("Random Forest Prediction Set Size Distribution (alpha = 0.1)")
@@ -106,7 +126,7 @@ def generate_plots(results_csv="outputs/results.csv", output_dir="outputs"):
     pca = PCA(n_components=2, random_state=42)
     X_test_pca = pca.fit_transform(X_test)
 
-    uncertain_mask = (set_sizes_rf != 1)
+    uncertain_mask = set_sizes_rf != 1
 
     plt.figure(figsize=(9, 6))
     plt.scatter(
@@ -116,7 +136,7 @@ def generate_plots(results_csv="outputs/results.csv", output_dir="outputs"):
         label="Certain (Set Size = 1)",
         alpha=0.7,
         edgecolors="k",
-        linewidths=0.5
+        linewidths=0.5,
     )
     plt.scatter(
         X_test_pca[uncertain_mask, 0],
@@ -125,12 +145,14 @@ def generate_plots(results_csv="outputs/results.csv", output_dir="outputs"):
         marker="X",
         s=70,
         label="Uncertain (Set Size != 1)",
-        alpha=0.9
+        alpha=0.9,
     )
 
     plt.xlabel("PCA Component 1")
     plt.ylabel("PCA Component 2")
-    plt.title("PCA 2D Projection of Test Set with RF Uncertain Points (alpha = 0.1)")
+    plt.title(
+        "PCA 2D Projection of Test Set with RF Uncertain Points (alpha = 0.1)"
+    )
     plt.legend()
     plt.tight_layout()
     plt.savefig(out_path / "pca_uncertainty_scatter.png", dpi=300)

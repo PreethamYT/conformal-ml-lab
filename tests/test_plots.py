@@ -3,14 +3,12 @@ Tests for visualization module.
 """
 
 from pathlib import Path
-import pytest
-
 from src.plots import generate_plots
 
 
 def test_generate_plots():
     """
-    Test that generate_plots runs and creates the required PNG visualization files.
+    Test that generate_plots runs and creates PNG visualization files.
     """
     generate_plots()
 

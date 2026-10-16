@@ -1,7 +1,7 @@
 """
 Preprocessing module for Diabetes dataset.
 Handles data loading, stratified train/calibration/test splitting,
-train-only median imputation for zero values, standard scaling, and saving splits.
+train-only median imputation for zero values, standard scaling, and saving.
 """
 
 from pathlib import Path
@@ -19,14 +19,20 @@ def load_data(filepath="data/diabetes.csv"):
     return pd.read_csv(filepath)
 
 
-def preprocess_and_save(filepath="data/diabetes.csv", output_dir="data/processed", models_dir="models", random_state=42):
+def preprocess_and_save(
+    filepath="data/diabetes.csv",
+    output_dir="data/processed",
+    models_dir="models",
+    random_state=42,
+):
     """
     Execute the full preprocessing pipeline:
-    1. Load raw data and perform stratified 60/20/20 train/calibration/test split first.
-    2. Treat 0s in ['Glucose', 'BloodPressure', 'SkinThickness', 'Insulin', 'BMI'] as missing.
-    3. Compute feature medians from train split only and apply them to all splits.
+    1. Load raw data and perform stratified 60/20/20 split.
+    2. Treat 0s in ['Glucose', 'BloodPressure', 'SkinThickness',
+       'Insulin', 'BMI'] as missing.
+    3. Compute feature medians from train split only and apply to all.
     4. Fit StandardScaler on train split only and scale all splits.
-    5. Save fitted scaler to models/scaler.joblib.
+    5. Save scaler to models/scaler.joblib.
     6. Save preprocessed splits to data/processed/.
 
     Returns:
@@ -42,11 +48,21 @@ def preprocess_and_save(filepath="data/diabetes.csv", output_dir="data/processed
         X, y, test_size=0.40, stratify=y, random_state=random_state
     )
     X_cal, X_test, y_cal, y_test = train_test_split(
-        X_temp, y_temp, test_size=0.50, stratify=y_temp, random_state=random_state
+        X_temp,
+        y_temp,
+        test_size=0.50,
+        stratify=y_temp,
+        random_state=random_state,
     )
 
-    # Step 2 & 3: Median imputation from TRAIN only for zero-impossible columns
-    zero_columns = ["Glucose", "BloodPressure", "SkinThickness", "Insulin", "BMI"]
+    # Step 2 & 3: Median imputation from TRAIN only
+    zero_columns = [
+        "Glucose",
+        "BloodPressure",
+        "SkinThickness",
+        "Insulin",
+        "BMI",
+    ]
 
     for col in zero_columns:
         if col in X.columns:
@@ -95,7 +111,15 @@ def preprocess_and_save(filepath="data/diabetes.csv", output_dir="data/processed
     X_test_scaled.to_csv(out_path / "X_test.csv", index=False)
     y_test.to_csv(out_path / "y_test.csv", index=False)
 
-    return X_train_scaled, y_train, X_cal_scaled, y_cal, X_test_scaled, y_test, scaler
+    return (
+        X_train_scaled,
+        y_train,
+        X_cal_scaled,
+        y_cal,
+        X_test_scaled,
+        y_test,
+        scaler,
+    )
 
 
 def load_processed_data(data_dir="data/processed"):
@@ -113,6 +137,10 @@ def load_processed_data(data_dir="data/processed"):
 
 
 if __name__ == "__main__":
-    X_train, y_train, X_cal, y_cal, X_test, y_test, _ = preprocess_and_save()
-    print(f"Processed splits saved successfully.")
-    print(f"X_train shape: {X_train.shape}, X_cal shape: {X_cal.shape}, X_test shape: {X_test.shape}")
+    X_tr, y_tr, X_c, y_c, X_te, y_te, _ = preprocess_and_save()
+    print("Processed splits saved successfully.")
+    print(
+        f"X_train shape: {X_tr.shape}, "
+        f"X_cal shape: {X_c.shape}, "
+        f"X_test shape: {X_te.shape}"
+    )

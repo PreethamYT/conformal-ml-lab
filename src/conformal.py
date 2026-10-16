@@ -9,7 +9,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-import numpy as np
+import numpy as np  # noqa: E402
 
 
 def get_threshold(model, X_cal, y_cal, alpha):
@@ -60,7 +60,7 @@ def conformal_sets(model, X_cal, y_cal, X_test, alpha):
 
     Returns:
         np.ndarray: Boolean matrix of shape (n_test_samples, n_classes)
-                    where entry [i, c] is True if prob(class c) >= 1 - threshold.
+                    where entry [i, c] is True if prob(c) >= 1 - threshold.
     """
     threshold = get_threshold(model, X_cal, y_cal, alpha)
     test_probs = model.predict_proba(X_test)
@@ -85,7 +85,13 @@ if __name__ == "__main__":
         thresh = get_threshold(model, X_cal, y_cal, alpha)
         sets = conformal_sets(model, X_cal, y_cal, X_test, alpha)
 
-        cov = np.mean(sets[np.arange(len(y_test)), np.asarray(y_test, dtype=int)])
+        y_arr = np.asarray(y_test, dtype=int)
+        cov = np.mean(sets[np.arange(len(y_test)), y_arr])
         avg_set_size = np.mean(sets.sum(axis=1))
 
-        print(f"Model: {model_file.stem:<20} Threshold: {thresh:.4f} Coverage: {cov:.4f} Avg Set Size: {avg_set_size:.2f}")
+        print(
+            f"Model: {model_file.stem:<20} "
+            f"Threshold: {thresh:.4f} "
+            f"Coverage: {cov:.4f} "
+            f"Avg Set Size: {avg_set_size:.2f}"
+        )

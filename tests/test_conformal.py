@@ -42,30 +42,33 @@ def test_conformal_threshold_and_coverage(data, models):
     3. Test set coverage is within 0.08 of (1 - alpha).
     4. Prediction set size is never larger than number of classes (n_classes).
     """
-    X_train, y_train, X_cal, y_cal, X_test, y_test = data
+    X_tr, y_tr, X_c, y_c, X_te, y_te = data
     alpha = 0.1
     target_coverage = 1.0 - alpha
-    n_classes = len(np.unique(y_train))
+    n_classes = len(np.unique(y_tr))
 
     for name, model in models.items():
-        thresh = get_threshold(model, X_cal, y_cal, alpha)
-        assert 0.0 <= thresh <= 1.0, f"Threshold out of bounds for {name}: {thresh}"
+        thresh = get_threshold(model, X_c, y_c, alpha)
+        assert 0.0 <= thresh <= 1.0, f"Threshold invalid for {name}: {thresh}"
 
-        sets = conformal_sets(model, X_cal, y_cal, X_test, alpha)
+        sets = conformal_sets(model, X_c, y_c, X_te, alpha)
 
         # Check shape and type
-        assert sets.shape == (len(X_test), n_classes)
+        assert sets.shape == (len(X_te), n_classes)
         assert sets.dtype == bool
 
         # Check prediction set size constraint
         set_sizes = sets.sum(axis=1)
-        assert (set_sizes <= n_classes).all(), f"Prediction set exceeds n_classes for {name}"
+        assert (set_sizes <= n_classes).all(), f"Set size exceeds {n_classes}"
         assert (set_sizes >= 0).all()
 
         # Check coverage on test split
-        y_test_arr = np.asarray(y_test, dtype=int)
-        covered = sets[np.arange(len(y_test_arr)), y_test_arr]
+        y_te_arr = np.asarray(y_te, dtype=int)
+        covered = sets[np.arange(len(y_te_arr)), y_te_arr]
         coverage = np.mean(covered)
 
         diff = abs(coverage - target_coverage)
-        assert diff <= 0.08, f"Model {name} coverage {coverage:.4f} is not within 0.08 of target {target_coverage}"
+        assert diff <= 0.08, (
+            f"Model {name} coverage {coverage:.4f} not within 0.08 "
+            f"of target {target_coverage}"
+        )

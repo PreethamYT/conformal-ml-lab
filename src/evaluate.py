@@ -1,6 +1,7 @@
 """
-Evaluation module for model accuracy and split-conformal prediction metrics.
-Generates outputs/results.csv containing accuracy, coverage, avg set size, and uncertain_pct for alpha in [0.1, 0.2].
+Evaluation module for model accuracy and split-conformal metrics.
+Generates outputs/results.csv containing accuracy, coverage, avg set size,
+and uncertain_pct for alpha in [0.1, 0.2].
 """
 
 from pathlib import Path
@@ -10,23 +11,31 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-import joblib
-import numpy as np
-import pandas as pd
+import joblib  # noqa: E402
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
 
-from src.conformal import conformal_sets
-from src.preprocess import load_processed_data
+from src.conformal import conformal_sets  # noqa: E402
+from src.preprocess import load_processed_data  # noqa: E402
 
 
-def evaluate_models(data_dir="data/processed", models_dir="models", output_dir="outputs", alphas=[0.1, 0.2]):
+def evaluate_models(
+    data_dir="data/processed",
+    models_dir="models",
+    output_dir="outputs",
+    alphas=[0.1, 0.2],
+):
     """
-    Evaluate trained models and split-conformal prediction metrics across alpha values.
+    Evaluate trained models and split-conformal prediction metrics.
 
     Returns:
-        pd.DataFrame: Evaluation results table with columns:
-                      [model, alpha, accuracy, coverage, avg_set_size, uncertain_pct]
+        pd.DataFrame: Results table with columns:
+                      [model, alpha, accuracy, coverage,
+                       avg_set_size, uncertain_pct]
     """
-    X_train, y_train, X_cal, y_cal, X_test, y_test = load_processed_data(data_dir)
+    X_train, y_train, X_cal, y_cal, X_test, y_test = load_processed_data(
+        data_dir
+    )
     y_test_arr = np.asarray(y_test, dtype=int)
 
     model_names = [
@@ -43,7 +52,9 @@ def evaluate_models(data_dir="data/processed", models_dir="models", output_dir="
     for name in model_names:
         model_file = models_path / f"{name}.joblib"
         if not model_file.exists():
-            raise FileNotFoundError(f"Model file {model_file} not found. Please run src/models.py first.")
+            raise FileNotFoundError(
+                f"Model file {model_file} not found. Run src/models.py first."
+            )
 
         model = joblib.load(model_file)
         preds = model.predict(X_test)
