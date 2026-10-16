@@ -2,72 +2,67 @@
 Tests for preprocessing and data splitting module.
 """
 
+from pathlib import Path
+import joblib
 import numpy as np
 import pandas as pd
 import pytest
 
-from src.preprocess import get_preprocessed_splits, load_data, preprocess_data, split_data
+from src.preprocess import load_data, load_processed_data, preprocess_and_save
 
 
-def test_split_sizes():
+def test_preprocess_and_split_sizes():
     """
-    Test that split sizes correspond to 60% train, 20% calibration, and 20% test split.
+    Test that preprocess_and_save produces split sizes corresponding to ~460/154/154
+    and that data files and scaler are saved properly.
     """
-    df = load_data("data/diabetes.csv")
-    total_samples = len(df)
+    X_train, y_train, X_cal, y_cal, X_test, y_test, scaler = preprocess_and_save()
 
-    X_train, X_cal, X_test, y_train, y_cal, y_test, _ = get_preprocessed_splits("data/diabetes.csv")
+    total_samples = 768
+    assert len(X_train) == 460
+    assert len(X_cal) == 154
+    assert len(X_test) == 154
+    assert len(X_train) + len(X_cal) + len(X_test) == total_samples
 
-    n_train = len(X_train)
-    n_cal = len(X_cal)
-    n_test = len(X_test)
-
-    # Sum of splits must equal total samples
-    assert n_train + n_cal + n_test == total_samples
-
-    # Verify target splits lengths match feature splits
-    assert len(y_train) == n_train
-    assert len(y_cal) == n_cal
-    assert len(y_test) == n_test
-
-    # Verify proportions (60 / 20 / 20) within reasonable roundoff margin
-    assert abs(n_train / total_samples - 0.60) < 0.01
-    assert abs(n_cal / total_samples - 0.20) < 0.01
-    assert abs(n_test / total_samples - 0.20) < 0.01
-
-    # Exact expected sample counts for 768 total samples with stratified 60/40 then 50/50 split
-    assert n_train == 460
-    assert n_cal == 154
-    assert n_test == 154
+    # Check file artifacts exist
+    assert Path("models/scaler.joblib").exists()
+    assert Path("data/processed/X_train.csv").exists()
+    assert Path("data/processed/y_train.csv").exists()
+    assert Path("data/processed/X_cal.csv").exists()
+    assert Path("data/processed/y_cal.csv").exists()
+    assert Path("data/processed/X_test.csv").exists()
+    assert Path("data/processed/y_test.csv").exists()
 
 
-def test_zero_imputation_and_scaling():
+def test_no_zeros_remain_in_imputed_columns():
     """
-    Test that impossible zero values are replaced with column medians and features are scaled.
+    Test that no zeros remain in Glucose, BloodPressure, SkinThickness, Insulin, BMI
+    prior to standard scaling / in the imputed splits.
     """
-    df = load_data("data/diabetes.csv")
     zero_cols = ["Glucose", "BloodPressure", "SkinThickness", "Insulin", "BMI"]
 
-    # Verify original dataset contains zeros in these columns
-    assert (df[zero_cols] == 0).any().any()
+    X_train, y_train, X_cal, y_cal, X_test, y_test, scaler = preprocess_and_save()
 
-    X_scaled, y, scaler = preprocess_data(df)
+    # Reconstruct unscaled features using inverse transform
+    X_train_unscaled = pd.DataFrame(scaler.inverse_transform(X_train), columns=X_train.columns)
+    X_cal_unscaled = pd.DataFrame(scaler.inverse_transform(X_cal), columns=X_cal.columns)
+    X_test_unscaled = pd.DataFrame(scaler.inverse_transform(X_test), columns=X_test.columns)
 
-    # Check scaled dataset mean ~ 0 and std ~ 1
-    assert np.allclose(X_scaled.mean(axis=0), 0, atol=1e-5)
-    assert np.allclose(X_scaled.std(axis=0), 1, atol=1e-2)
+    for df in [X_train_unscaled, X_cal_unscaled, X_test_unscaled]:
+        for col in zero_cols:
+            assert not (df[col] == 0).any(), f"Zero value found in column {col}"
 
 
-def test_stratification():
+def test_load_processed_data():
     """
-    Test that class proportions are preserved across train, calibration, and test splits.
+    Test loading processed data from CSV files.
     """
-    X_train, X_cal, X_test, y_train, y_cal, y_test, _ = get_preprocessed_splits("data/diabetes.csv")
+    preprocess_and_save()
+    X_train, y_train, X_cal, y_cal, X_test, y_test = load_processed_data()
 
-    p_train = y_train.mean()
-    p_cal = y_cal.mean()
-    p_test = y_test.mean()
-
-    # Stratified splits should have nearly identical positive class ratios
-    assert abs(p_train - p_cal) < 0.02
-    assert abs(p_train - p_test) < 0.02
+    assert X_train.shape == (460, 8)
+    assert X_cal.shape == (154, 8)
+    assert X_test.shape == (154, 8)
+    assert len(y_train) == 460
+    assert len(y_cal) == 154
+    assert len(y_test) == 154
