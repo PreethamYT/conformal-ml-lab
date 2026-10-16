@@ -3,7 +3,7 @@
 A reliability layer for machine learning classifiers using **Split-Conformal Prediction** applied to the Pima Indians Diabetes dataset.
 
 ## Live Demo
-🔗 **Live Interactive Demo**: `[https://conformalprediction.streamlit.app](https://conformalprediction.streamlit.app/)` 
+🔗 **Live Interactive Demo**: [https://conformalprediction.streamlit.app](https://conformalprediction.streamlit.app/) 
 
 ---
 
